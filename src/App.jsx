@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Upload, Music, X, Play, Pause, Square, Volume2, SkipBack, SkipForward } from "lucide-react";
+import { Plus, Upload, Music, X, Play, Pause, Square, Volume2, SkipBack, SkipForward, Sparkles, Image as ImageIcon } from "lucide-react";
 
 const DEFAULT_TAPE_MINUTES = 90;
 const SUPPORTED_AUDIO_EXTENSIONS = [".mp3", ".flac", ".wav", ".aiff", ".aif", ".m4a", ".alac"];
@@ -138,106 +138,6 @@ function PlaylistControls({ label, disabled, isPlaying, isPaused, progress, onPl
         </button>
       </div>
     </div>
-  );
-}
-
-function createCassetteJacket(side, tracks) {
-  const text = tracks.map((track) => `${track.title || ""} ${track.fileName || ""}`).join(" ").toLowerCase();
-
-  const moodRules = [
-    { mood: "Dreamy Night Drive", genre: "Synth / Indie Pop", words: ["night", "moon", "dream", "drive", "city", "neon", "window", "blue"], gradient: "from-indigo-900 via-violet-700 to-pink-500", accent: "bg-pink-200", symbol: "◐" },
-    { mood: "Warm Soulful Afternoon", genre: "Soul / R&B", words: ["love", "heart", "soul", "sweet", "baby", "sun", "warm", "gold"], gradient: "from-amber-700 via-orange-400 to-yellow-200", accent: "bg-orange-100", symbol: "●" },
-    { mood: "Quiet Acoustic Room", genre: "Folk / Acoustic", words: ["home", "room", "rain", "coffee", "acoustic", "folk", "alone", "letter"], gradient: "from-stone-700 via-amber-200 to-stone-100", accent: "bg-stone-200", symbol: "△" },
-    { mood: "Fresh Summer Breeze", genre: "Pop / City Pop", words: ["summer", "beach", "sea", "wave", "breeze", "sunset", "good day", "holiday"], gradient: "from-cyan-500 via-sky-200 to-lime-100", accent: "bg-cyan-100", symbol: "≈" },
-    { mood: "Lo-Fi Midnight Tape", genre: "Lo-Fi / Chill", words: ["lofi", "lo-fi", "chill", "midnight", "sleep", "slow", "lazy", "jazz"], gradient: "from-neutral-900 via-zinc-600 to-emerald-200", accent: "bg-emerald-100", symbol: "▣" },
-  ];
-
-  const scored = moodRules.map((rule) => ({
-    ...rule,
-    score: rule.words.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0),
-  })).sort((a, b) => b.score - a.score);
-
-  const selected = scored[0].score > 0 ? scored[0] : {
-    mood: "Essential Mixed Feelings",
-    genre: "Mixtape / Various",
-    gradient: "from-neutral-900 via-neutral-500 to-neutral-100",
-    accent: "bg-neutral-200",
-    symbol: "◆",
-  };
-
-  const totalSeconds = tracks.reduce((sum, track) => sum + (track.seconds || 0), 0);
-  return {
-    side,
-    title: `SIDE ${side} — ${selected.mood}`,
-    genre: selected.genre,
-    mood: selected.mood,
-    gradient: selected.gradient,
-    accent: selected.accent,
-    symbol: selected.symbol,
-    totalTime: secondsToTime(totalSeconds),
-    trackCount: tracks.length,
-    tracks: tracks.map((track) => track.title || track.fileName || "Untitled"),
-  };
-}
-
-function JacketPreview({ design, onClose }) {
-  if (!design) return null;
-
-  return (
-    <section className="mb-4 rounded-3xl border bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-black">AI 스타일 카세트 자켓 제안</h2>
-          <p className="text-sm text-neutral-500">재생이 끝난 면의 곡 제목과 파일명을 기준으로 분위기를 추정해 만든 자켓입니다.</p>
-        </div>
-        <button className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100" onClick={onClose}>닫기</button>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <div className={`aspect-square overflow-hidden rounded-3xl bg-gradient-to-br ${design.gradient} p-5 text-white shadow-inner`}>
-          <div className="flex h-full flex-col justify-between rounded-2xl border border-white/40 bg-white/10 p-5 backdrop-blur-sm">
-            <div>
-              <div className="mb-4 flex items-center justify-between text-xs font-bold tracking-[0.35em] text-white/80">
-                <span>CASSETTE</span>
-                <span>SIDE {design.side}</span>
-              </div>
-              <div className="text-7xl font-black leading-none opacity-90">{design.symbol}</div>
-            </div>
-            <div>
-              <div className="mb-3 h-20 rounded-xl border border-white/50 bg-white/80 p-3 text-neutral-900">
-                <div className="text-xs font-bold tracking-widest text-neutral-500">MIX TAPE</div>
-                <div className="line-clamp-2 text-xl font-black leading-tight">{design.mood}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                <div className="rounded-lg bg-black/20 p-2">{design.genre}</div>
-                <div className="rounded-lg bg-black/20 p-2 text-right">{design.trackCount} tracks · {design.totalTime}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl bg-neutral-50 p-4">
-          <div className="mb-2 text-sm font-bold text-neutral-500">분석 결과</div>
-          <div className="mb-3 text-2xl font-black">{design.title}</div>
-          <div className="mb-4 grid gap-2 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white p-3 shadow-sm">
-              <div className="text-xs font-bold text-neutral-400">GENRE</div>
-              <div className="font-bold">{design.genre}</div>
-            </div>
-            <div className="rounded-2xl bg-white p-3 shadow-sm">
-              <div className="text-xs font-bold text-neutral-400">MOOD</div>
-              <div className="font-bold">{design.mood}</div>
-            </div>
-          </div>
-          <div className="text-sm font-bold text-neutral-500">Track list</div>
-          <ol className="mt-2 space-y-1 text-sm text-neutral-700">
-            {design.tracks.map((track, index) => (
-              <li key={`${track}-${index}`} className="rounded-xl bg-white px-3 py-2 shadow-sm">{index + 1}. {track}</li>
-            ))}
-          </ol>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -450,6 +350,29 @@ export default function CassetteTapePlanner() {
       await loadAudioDevices();
     } catch {
       setAudioError("장치 이름 표시를 위해 브라우저의 오디오 권한이 필요할 수 있습니다.");
+    }
+  }
+
+  async function selectOutputDevice() {
+    setAudioError("");
+
+    try {
+      if (!navigator.mediaDevices?.selectAudioOutput) {
+        setAudioError("현재 브라우저는 출력 장치 직접 선택을 지원하지 않습니다. Windows에서는 Chrome 또는 Edge 최신 버전에서 테스트해주세요.");
+        return;
+      }
+
+      const device = await navigator.mediaDevices.selectAudioOutput();
+
+      if (device?.deviceId) {
+        setSelectedOutputDeviceId(device.deviceId);
+        selectedOutputDeviceIdRef.current = device.deviceId;
+        await ensureAudioContext();
+        await applyOutputDevice(device.deviceId);
+        await loadAudioDevices();
+      }
+    } catch {
+      setAudioError("출력 장치 선택이 취소되었거나 권한이 허용되지 않았습니다.");
     }
   }
 
@@ -710,7 +633,7 @@ export default function CassetteTapePlanner() {
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-neutral-500"><Music size={16} /> TAPE</div>
-              <h1 className="text-3xl font-black tracking-tight">워크맨팩토리 카세트 테이프 녹음기 V2</h1>
+              <h1 className="text-3xl font-black tracking-tight">카세트 테이프 플래너</h1>
             </div>
             <div className="flex items-center gap-3">
               <label className="text-sm font-semibold text-neutral-600">테이프 총 길이</label>
@@ -743,6 +666,7 @@ export default function CassetteTapePlanner() {
                   <option key={device.deviceId} value={device.deviceId}>{device.label || `오디오 출력 장치 ${index + 1}`}</option>
                 ))}
               </select>
+              <button className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700" onClick={selectOutputDevice}>출력 장치 직접 선택</button>
               <button className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-neutral-100" onClick={requestAudioDevicePermission}>장치 목록 새로고침</button>
             </div>
           </div>
