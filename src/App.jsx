@@ -75,18 +75,59 @@ function createCassetteJacket(side, tracks) {
   const text = tracks.map((track) => `${track.title || ""} ${track.fileName || ""}`).join(" ").toLowerCase();
 
   const moodRules = [
-    { mood: "Dreamy Night Drive", genre: "Synth / Indie Pop", words: ["night", "moon", "dream", "drive", "city", "neon", "window", "blue"], gradient: "from-indigo-900 via-violet-700 to-pink-500", symbol: "◐" },
-    { mood: "Warm Soulful Afternoon", genre: "Soul / R&B", words: ["love", "heart", "soul", "sweet", "baby", "sun", "warm", "gold"], gradient: "from-amber-700 via-orange-400 to-yellow-200", symbol: "●" },
-    { mood: "Quiet Acoustic Room", genre: "Folk / Acoustic", words: ["home", "room", "rain", "coffee", "acoustic", "folk", "alone", "letter"], gradient: "from-stone-700 via-amber-200 to-stone-100", symbol: "△" },
-    { mood: "Fresh Summer Breeze", genre: "Pop / City Pop", words: ["summer", "beach", "sea", "wave", "breeze", "sunset", "good day", "holiday"], gradient: "from-cyan-500 via-sky-200 to-lime-100", symbol: "≈" },
-    { mood: "Lo-Fi Midnight Tape", genre: "Lo-Fi / Chill", words: ["lofi", "lo-fi", "chill", "midnight", "sleep", "slow", "lazy", "jazz"], gradient: "from-neutral-900 via-zinc-600 to-emerald-200", symbol: "▣" },
+    {
+      mood: "Dreamy Night Drive",
+      genre: "Synth / Indie Pop",
+      words: ["night", "moon", "dream", "drive", "city", "neon", "window", "blue"],
+      gradient: "from-indigo-900 via-violet-700 to-pink-500",
+      symbol: "◐",
+    },
+    {
+      mood: "Warm Soulful Afternoon",
+      genre: "Soul / R&B",
+      words: ["love", "heart", "soul", "sweet", "baby", "sun", "warm", "gold"],
+      gradient: "from-amber-700 via-orange-400 to-yellow-200",
+      symbol: "●",
+    },
+    {
+      mood: "Quiet Acoustic Room",
+      genre: "Folk / Acoustic",
+      words: ["home", "room", "rain", "coffee", "acoustic", "folk", "alone", "letter"],
+      gradient: "from-stone-700 via-amber-200 to-stone-100",
+      symbol: "△",
+    },
+    {
+      mood: "Fresh Summer Breeze",
+      genre: "Pop / City Pop",
+      words: ["summer", "beach", "sea", "wave", "breeze", "sunset", "good day", "holiday"],
+      gradient: "from-cyan-500 via-sky-200 to-lime-100",
+      symbol: "≈",
+    },
+    {
+      mood: "Lo-Fi Midnight Tape",
+      genre: "Lo-Fi / Chill",
+      words: ["lofi", "lo-fi", "chill", "midnight", "sleep", "slow", "lazy", "jazz"],
+      gradient: "from-neutral-900 via-zinc-600 to-emerald-200",
+      symbol: "▣",
+    },
   ];
 
   const scored = moodRules
-    .map((rule) => ({ ...rule, score: rule.words.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0) }))
+    .map((rule) => ({
+      ...rule,
+      score: rule.words.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0),
+    }))
     .sort((a, b) => b.score - a.score);
 
-  const selected = scored[0].score > 0 ? scored[0] : { mood: "Essential Mixed Feelings", genre: "Mixtape / Various", gradient: "from-neutral-900 via-neutral-500 to-neutral-100", symbol: "◆" };
+  const selected =
+    scored[0].score > 0
+      ? scored[0]
+      : {
+          mood: "Essential Mixed Feelings",
+          genre: "Mixtape / Various",
+          gradient: "from-neutral-900 via-neutral-500 to-neutral-100",
+          symbol: "◆",
+        };
 
   const totalSeconds = tracks.reduce((sum, track) => sum + (track.seconds || 0), 0);
 
@@ -115,11 +156,41 @@ function TrackRow({ track, index, isCurrent, onChangeTitle, onChangeSeconds, onR
   return (
     <div className={`grid grid-cols-[32px_1fr_82px_82px_36px] items-center gap-2 rounded-xl border p-2 shadow-sm ${isCurrent ? "border-neutral-900 bg-neutral-100" : "bg-white"}`}>
       <div className="text-center text-sm font-semibold text-neutral-400">{index + 1}</div>
-      <input className="rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-300" value={track.title} onChange={(event) => onChangeTitle(track.id, event.target.value)} placeholder="제목" />
-      <input className="rounded-lg border px-2 py-2 text-right text-sm outline-none focus:ring-2 focus:ring-neutral-300" type="number" min="0" value={minutes} onChange={(event) => onChangeSeconds(track.id, (Math.max(0, Number(event.target.value) || 0) * 60) + seconds)} />
-      <input className="rounded-lg border px-2 py-2 text-right text-sm outline-none focus:ring-2 focus:ring-neutral-300" type="number" min="0" max="59" value={seconds} onChange={(event) => onChangeSeconds(track.id, minutes * 60 + Math.min(59, Math.max(0, Number(event.target.value) || 0)))} />
-      <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-neutral-100" onClick={() => onRemove(track.id)}><X size={16} /></button>
-      {track.decodeError && <div className="col-span-5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">이 파일은 현재 브라우저에서 디코딩할 수 없습니다. FLAC은 Chrome/Edge에서 테스트해보세요.</div>}
+      <input
+        className="rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-300"
+        value={track.title}
+        onChange={(event) => onChangeTitle(track.id, event.target.value)}
+        placeholder="제목"
+      />
+      <input
+        className="rounded-lg border px-2 py-2 text-right text-sm outline-none focus:ring-2 focus:ring-neutral-300"
+        type="number"
+        min="0"
+        value={minutes}
+        onChange={(event) => {
+          const nextMinutes = Math.max(0, Number(event.target.value) || 0);
+          onChangeSeconds(track.id, nextMinutes * 60 + seconds);
+        }}
+      />
+      <input
+        className="rounded-lg border px-2 py-2 text-right text-sm outline-none focus:ring-2 focus:ring-neutral-300"
+        type="number"
+        min="0"
+        max="59"
+        value={seconds}
+        onChange={(event) => {
+          const nextSeconds = Math.min(59, Math.max(0, Number(event.target.value) || 0));
+          onChangeSeconds(track.id, minutes * 60 + nextSeconds);
+        }}
+      />
+      <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-neutral-100" onClick={() => onRemove(track.id)}>
+        <X size={16} />
+      </button>
+      {track.decodeError && (
+        <div className="col-span-5 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+          이 파일은 현재 브라우저에서 디코딩할 수 없습니다. FLAC은 Chrome/Edge에서 테스트해보세요.
+        </div>
+      )}
     </div>
   );
 }
@@ -131,15 +202,29 @@ function PlaylistControls({ label, disabled, isPlaying, isPaused, progress, onPl
     <div className="mt-4 rounded-2xl border bg-white p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="text-sm font-bold">{label}면 전체 재생</div>
-        <div className="text-xs font-semibold text-neutral-500">{secondsToTime(progress.currentTime)} / {secondsToTime(progress.duration)}</div>
+        <div className="text-xs font-semibold text-neutral-500">
+          {secondsToTime(progress.currentTime)} / {secondsToTime(progress.duration)}
+        </div>
       </div>
-      <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-neutral-200"><div className="h-full rounded-full bg-neutral-900 transition-all" style={{ width: `${progressPercent}%` }} /></div>
+      <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
+        <div className="h-full rounded-full bg-neutral-900 transition-all" style={{ width: `${progressPercent}%` }} />
+      </div>
       <div className="grid grid-cols-5 gap-2">
-        <button className="flex items-center justify-center gap-1 rounded-xl bg-neutral-900 px-3 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-300" onClick={onPlay} disabled={disabled}><Play size={15} /> 재생</button>
-        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onPrevious} disabled={disabled}><SkipBack size={15} /> 이전</button>
-        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onNext} disabled={disabled}><SkipForward size={15} /> 다음</button>
-        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onPause} disabled={disabled || (!isPlaying && !isPaused)}><Pause size={15} /> 일시정지</button>
-        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onStop} disabled={disabled || (!isPlaying && !isPaused)}><Square size={14} /> 멈춤</button>
+        <button className="flex items-center justify-center gap-1 rounded-xl bg-neutral-900 px-3 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-300" onClick={onPlay} disabled={disabled}>
+          <Play size={15} /> 재생
+        </button>
+        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onPrevious} disabled={disabled}>
+          <SkipBack size={15} /> 이전
+        </button>
+        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onNext} disabled={disabled}>
+          <SkipForward size={15} /> 다음
+        </button>
+        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onPause} disabled={disabled || (!isPlaying && !isPaused)}>
+          <Pause size={15} /> 일시정지
+        </button>
+        <button className="flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40" onClick={onStop} disabled={disabled || (!isPlaying && !isPaused)}>
+          <Square size={14} /> 멈춤
+        </button>
       </div>
     </div>
   );
@@ -153,16 +238,30 @@ function AIJacketImage({ design }) {
 
   async function generateAIImage() {
     if (!design) return;
+
     const endpoint = import.meta.env.VITE_AI_JACKET_API_URL;
     setImageUrl("");
     setError("");
+
     if (!endpoint) {
       setStatus("missing-endpoint");
       return;
     }
+
     setStatus("generating");
     try {
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, side: design.side, mood: design.mood, genre: design.genre, tracks: design.tracks }) });
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          side: design.side,
+          mood: design.mood,
+          genre: design.genre,
+          tracks: design.tracks,
+        }),
+      });
+
       if (!response.ok) throw new Error("AI image generation failed");
       const data = await response.json();
       const nextImageUrl = data.imageUrl || data.url || data.base64Image || data.image;
@@ -175,21 +274,46 @@ function AIJacketImage({ design }) {
     }
   }
 
-  useEffect(() => { if (design) generateAIImage(); }, [design]);
+  useEffect(() => {
+    if (design) generateAIImage();
+  }, [design]);
 
   if (!design) return null;
 
   return (
     <div className="mt-5 rounded-3xl border bg-neutral-50 p-4">
       <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div><div className="flex items-center gap-2 text-sm font-black text-neutral-800"><Sparkles size={16} /> AI 이미지 생성 자켓</div><p className="mt-1 text-sm text-neutral-500">곡 제목, 장르, 분위기 정보를 프롬프트로 만들어 이미지 생성 API에 전달합니다.</p></div>
-        <button className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:bg-neutral-300" onClick={generateAIImage} disabled={status === "generating"}>{status === "generating" ? "생성 중..." : "AI 이미지 다시 생성"}</button>
+        <div>
+          <div className="flex items-center gap-2 text-sm font-black text-neutral-800">
+            <Sparkles size={16} /> AI 이미지 생성 자켓
+          </div>
+          <p className="mt-1 text-sm text-neutral-500">곡 제목, 장르, 분위기 정보를 프롬프트로 만들어 이미지 생성 API에 전달합니다.</p>
+        </div>
+        <button className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:bg-neutral-300" onClick={generateAIImage} disabled={status === "generating"}>
+          {status === "generating" ? "생성 중..." : "AI 이미지 다시 생성"}
+        </button>
       </div>
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <div className="flex aspect-square items-center justify-center overflow-hidden rounded-3xl border bg-white">
-          {imageUrl ? <img src={imageUrl} alt="AI generated cassette jacket" className="h-full w-full object-cover" /> : <div className="p-6 text-center text-neutral-500"><ImageIcon className="mx-auto mb-3" size={42} />{status === "generating" && <div className="font-semibold">AI 이미지를 생성하는 중입니다...</div>}{status === "missing-endpoint" && <div className="font-semibold">AI 이미지 생성 API endpoint가 설정되지 않았습니다.</div>}{status === "error" && <div className="font-semibold text-red-600">{error}</div>}{status === "idle" && <div className="font-semibold">AI 이미지 생성 대기 중</div>}</div>}
+          {imageUrl ? (
+            <img src={imageUrl} alt="AI generated cassette jacket" className="h-full w-full object-cover" />
+          ) : (
+            <div className="p-6 text-center text-neutral-500">
+              <ImageIcon className="mx-auto mb-3" size={42} />
+              {status === "generating" && <div className="font-semibold">AI 이미지를 생성하는 중입니다...</div>}
+              {status === "missing-endpoint" && <div className="font-semibold">AI 이미지 생성 API endpoint가 설정되지 않았습니다.</div>}
+              {status === "error" && <div className="font-semibold text-red-600">{error}</div>}
+              {status === "idle" && <div className="font-semibold">AI 이미지 생성 대기 중</div>}
+            </div>
+          )}
         </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm"><div className="mb-2 text-sm font-bold text-neutral-500">AI 이미지 생성 프롬프트</div><pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-2xl bg-neutral-900 p-4 text-xs leading-relaxed text-neutral-100">{prompt}</pre><p className="mt-3 text-xs text-neutral-500">브라우저에 API Key를 직접 넣으면 보안상 위험합니다. Netlify Function, Vercel API Route, 또는 별도 백엔드에 이미지 생성 API를 연결하고, 그 주소를 <code>VITE_AI_JACKET_API_URL</code> 환경변수로 설정해주세요.</p></div>
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-2 text-sm font-bold text-neutral-500">AI 이미지 생성 프롬프트</div>
+          <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-2xl bg-neutral-900 p-4 text-xs leading-relaxed text-neutral-100">{prompt}</pre>
+          <p className="mt-3 text-xs text-neutral-500">
+            브라우저에 API Key를 직접 넣으면 보안상 위험합니다. Netlify Function, Vercel API Route, 또는 별도 백엔드에 이미지 생성 API를 연결하고, 그 주소를 <code>VITE_AI_JACKET_API_URL</code> 환경변수로 설정해주세요.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -197,19 +321,91 @@ function AIJacketImage({ design }) {
 
 function JacketPreview({ design, onClose }) {
   if (!design) return null;
+
   return (
     <section className="mb-4 rounded-3xl border bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-xl font-black">AI 스타일 카세트 자켓 제안</h2><p className="text-sm text-neutral-500">재생이 끝난 면의 곡 제목과 파일명을 기준으로 분위기를 추정해 만든 자켓입니다.</p></div><button className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100" onClick={onClose}>닫기</button></div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black">AI 스타일 카세트 자켓 제안</h2>
+          <p className="text-sm text-neutral-500">재생이 끝난 면의 곡 제목과 파일명을 기준으로 분위기를 추정해 만든 자켓입니다.</p>
+        </div>
+        <button className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100" onClick={onClose}>
+          닫기
+        </button>
+      </div>
       <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <div className={`aspect-square overflow-hidden rounded-3xl bg-gradient-to-br ${design.gradient} p-5 text-white shadow-inner`}><div className="flex h-full flex-col justify-between rounded-2xl border border-white/40 bg-white/10 p-5 backdrop-blur-sm"><div><div className="mb-4 flex items-center justify-between text-xs font-bold tracking-[0.35em] text-white/80"><span>CASSETTE</span><span>SIDE {design.side}</span></div><div className="text-7xl font-black leading-none opacity-90">{design.symbol}</div></div><div><div className="mb-3 h-20 rounded-xl border border-white/50 bg-white/80 p-3 text-neutral-900"><div className="text-xs font-bold tracking-widest text-neutral-500">MIX TAPE</div><div className="line-clamp-2 text-xl font-black leading-tight">{design.mood}</div></div><div className="grid grid-cols-2 gap-2 text-xs font-semibold"><div className="rounded-lg bg-black/20 p-2">{design.genre}</div><div className="rounded-lg bg-black/20 p-2 text-right">{design.trackCount} tracks · {design.totalTime}</div></div></div></div></div>
-        <div className="rounded-3xl bg-neutral-50 p-4"><div className="mb-2 text-sm font-bold text-neutral-500">분석 결과</div><div className="mb-3 text-2xl font-black">{design.title}</div><div className="mb-4 grid gap-2 sm:grid-cols-2"><div className="rounded-2xl bg-white p-3 shadow-sm"><div className="text-xs font-bold text-neutral-400">GENRE</div><div className="font-bold">{design.genre}</div></div><div className="rounded-2xl bg-white p-3 shadow-sm"><div className="text-xs font-bold text-neutral-400">MOOD</div><div className="font-bold">{design.mood}</div></div></div><div className="text-sm font-bold text-neutral-500">Track list</div><ol className="mt-2 space-y-1 text-sm text-neutral-700">{design.tracks.map((track, index) => <li key={`${track}-${index}`} className="rounded-xl bg-white px-3 py-2 shadow-sm">{index + 1}. {track}</li>)}</ol></div>
+        <div className={`aspect-square overflow-hidden rounded-3xl bg-gradient-to-br ${design.gradient} p-5 text-white shadow-inner`}>
+          <div className="flex h-full flex-col justify-between rounded-2xl border border-white/40 bg-white/10 p-5 backdrop-blur-sm">
+            <div>
+              <div className="mb-4 flex items-center justify-between text-xs font-bold tracking-[0.35em] text-white/80">
+                <span>CASSETTE</span>
+                <span>SIDE {design.side}</span>
+              </div>
+              <div className="text-7xl font-black leading-none opacity-90">{design.symbol}</div>
+            </div>
+            <div>
+              <div className="mb-3 h-20 rounded-xl border border-white/50 bg-white/80 p-3 text-neutral-900">
+                <div className="text-xs font-bold tracking-widest text-neutral-500">MIX TAPE</div>
+                <div className="line-clamp-2 text-xl font-black leading-tight">{design.mood}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                <div className="rounded-lg bg-black/20 p-2">{design.genre}</div>
+                <div className="rounded-lg bg-black/20 p-2 text-right">
+                  {design.trackCount} tracks · {design.totalTime}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-3xl bg-neutral-50 p-4">
+          <div className="mb-2 text-sm font-bold text-neutral-500">분석 결과</div>
+          <div className="mb-3 text-2xl font-black">{design.title}</div>
+          <div className="mb-4 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <div className="text-xs font-bold text-neutral-400">GENRE</div>
+              <div className="font-bold">{design.genre}</div>
+            </div>
+            <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <div className="text-xs font-bold text-neutral-400">MOOD</div>
+              <div className="font-bold">{design.mood}</div>
+            </div>
+          </div>
+          <div className="text-sm font-bold text-neutral-500">Track list</div>
+          <ol className="mt-2 space-y-1 text-sm text-neutral-700">
+            {design.tracks.map((track, index) => (
+              <li key={`${track}-${index}`} className="rounded-xl bg-white px-3 py-2 shadow-sm">
+                {index + 1}. {track}
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
       <AIJacketImage design={design} />
     </section>
   );
 }
 
-function TapeSide({ label, tracks, maxSeconds, activeSide, currentTrackId, isPlaying, isPaused, progress, silenceSeconds, onDropTracks, onAddManual, onPlaySide, onPrevious, onNext, onPause, onStop, onChangeTitle, onChangeSeconds, onRemove }) {
+function TapeSide({
+  label,
+  tracks,
+  maxSeconds,
+  activeSide,
+  currentTrackId,
+  isPlaying,
+  isPaused,
+  progress,
+  silenceSeconds,
+  onDropTracks,
+  onAddManual,
+  onPlaySide,
+  onPrevious,
+  onNext,
+  onPause,
+  onStop,
+  onChangeTitle,
+  onChangeSeconds,
+  onRemove,
+}) {
   const [dragOver, setDragOver] = useState(false);
   const musicSeconds = tracks.reduce((sum, track) => sum + track.seconds, 0);
   const silenceGapCount = Math.max(0, tracks.length - 1);
@@ -221,16 +417,80 @@ function TapeSide({ label, tracks, maxSeconds, activeSide, currentTrackId, isPla
   const playableTracks = tracks.filter((track) => track.audioBuffer);
   const sideProgress = isThisSideActive ? progress : { currentTime: 0, duration: 0 };
 
-  async function handleDrop(event) { event.preventDefault(); setDragOver(false); await onDropTracks(event.dataTransfer.files); }
+  async function handleDrop(event) {
+    event.preventDefault();
+    setDragOver(false);
+    await onDropTracks(event.dataTransfer.files);
+  }
 
   return (
-    <section className={`rounded-3xl border p-4 shadow-sm transition ${dragOver ? "border-neutral-900 bg-neutral-100" : "border-neutral-200 bg-neutral-50"}`} onDragOver={(event) => { event.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={handleDrop}>
-      <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900 text-sm font-bold text-white">{label}</div><h2 className="text-xl font-bold">{label}면</h2></div><div className="text-right"><div className="text-2xl font-bold">{secondsToTime(usedSeconds)}</div><div className={`text-sm ${isOver ? "font-semibold text-red-600" : "text-neutral-500"}`}>사용 남은 시간: {isOver ? `-${secondsToTime(Math.abs(remainingSeconds))}` : secondsToTime(remainingSeconds)}</div>{silenceTotalSeconds > 0 && <div className="text-xs text-neutral-400">무음부 포함: +{secondsToTime(silenceTotalSeconds)} ({silenceGapCount}구간)</div>}</div></div>
-      <div className="mb-3 grid grid-cols-[32px_1fr_82px_82px_36px] gap-2 px-2 text-xs font-semibold text-neutral-500"><div /><div>제목</div><div className="text-right">분</div><div className="text-right">초</div><div /></div>
-      <div className="space-y-2">{tracks.map((track, index) => <TrackRow key={track.id} track={track} index={index} isCurrent={isThisSideActive && currentTrackId === track.id} onChangeTitle={onChangeTitle} onChangeSeconds={onChangeSeconds} onRemove={onRemove} />)}</div>
-      <PlaylistControls label={label} disabled={playableTracks.length === 0} isPlaying={isThisSideActive && isPlaying} isPaused={isThisSideActive && isPaused} progress={sideProgress} onPlay={() => onPlaySide(label)} onPrevious={() => onPrevious(label)} onNext={() => onNext(label)} onPause={onPause} onStop={onStop} />
-      <div className={`mt-4 rounded-2xl border-2 border-dashed p-5 text-center ${dragOver ? "border-neutral-900 bg-white" : "border-neutral-300 bg-white/70"}`}><Upload className="mx-auto mb-2" size={24} /><p className="text-sm font-semibold">MP3, FLAC, WAV, AIFF, M4A 파일을 이 {label}면 박스에 드래그 앤 드롭</p><p className="mt-1 text-xs text-neutral-500">Web Audio API로 디코딩 후 재생합니다. 긴 무손실 파일은 로딩 시간이 걸릴 수 있습니다.</p></div>
-      <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white hover:bg-neutral-700" onClick={onAddManual}><Plus size={16} /> 곡 추가</button>
+    <section
+      className={`rounded-3xl border p-4 shadow-sm transition ${dragOver ? "border-neutral-900 bg-neutral-100" : "border-neutral-200 bg-neutral-50"}`}
+      onDragOver={(event) => {
+        event.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900 text-sm font-bold text-white">{label}</div>
+          <h2 className="text-xl font-bold">{label}면</h2>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold">{secondsToTime(usedSeconds)}</div>
+          <div className={`text-sm ${isOver ? "font-semibold text-red-600" : "text-neutral-500"}`}>
+            사용 남은 시간: {isOver ? `-${secondsToTime(Math.abs(remainingSeconds))}` : secondsToTime(remainingSeconds)}
+          </div>
+          {silenceTotalSeconds > 0 && <div className="text-xs text-neutral-400">무음부 포함: +{secondsToTime(silenceTotalSeconds)} ({silenceGapCount}구간)</div>}
+        </div>
+      </div>
+
+      <div className="mb-3 grid grid-cols-[32px_1fr_82px_82px_36px] gap-2 px-2 text-xs font-semibold text-neutral-500">
+        <div />
+        <div>제목</div>
+        <div className="text-right">분</div>
+        <div className="text-right">초</div>
+        <div />
+      </div>
+
+      <div className="space-y-2">
+        {tracks.map((track, index) => (
+          <TrackRow
+            key={track.id}
+            track={track}
+            index={index}
+            isCurrent={isThisSideActive && currentTrackId === track.id}
+            onChangeTitle={onChangeTitle}
+            onChangeSeconds={onChangeSeconds}
+            onRemove={onRemove}
+          />
+        ))}
+      </div>
+
+      <PlaylistControls
+        label={label}
+        disabled={playableTracks.length === 0}
+        isPlaying={isThisSideActive && isPlaying}
+        isPaused={isThisSideActive && isPaused}
+        progress={sideProgress}
+        onPlay={() => onPlaySide(label)}
+        onPrevious={() => onPrevious(label)}
+        onNext={() => onNext(label)}
+        onPause={onPause}
+        onStop={onStop}
+      />
+
+      <div className={`mt-4 rounded-2xl border-2 border-dashed p-5 text-center ${dragOver ? "border-neutral-900 bg-white" : "border-neutral-300 bg-white/70"}`}>
+        <Upload className="mx-auto mb-2" size={24} />
+        <p className="text-sm font-semibold">MP3, FLAC, WAV, AIFF, M4A 파일을 이 {label}면 박스에 드래그 앤 드롭</p>
+        <p className="mt-1 text-xs text-neutral-500">Web Audio API로 디코딩 후 재생합니다. 긴 무손실 파일은 로딩 시간이 걸릴 수 있습니다.</p>
+      </div>
+
+      <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white hover:bg-neutral-700" onClick={onAddManual}>
+        <Plus size={16} /> 곡 추가
+      </button>
     </section>
   );
 }
@@ -278,13 +538,33 @@ export default function CassetteTapePlanner() {
   const currentPlayableTracks = currentTracks.filter((track) => track.audioBuffer);
   const currentTrack = currentTrackIndex >= 0 ? currentPlayableTracks[currentTrackIndex] : null;
 
-  useEffect(() => { activeSideRef.current = activeSide; }, [activeSide]);
-  useEffect(() => { currentTrackIndexRef.current = currentTrackIndex; }, [currentTrackIndex]);
-  useEffect(() => { sideARef.current = sideA; }, [sideA]);
-  useEffect(() => { sideBRef.current = sideB; }, [sideB]);
-  useEffect(() => { selectedOutputDeviceIdRef.current = selectedOutputDeviceId; }, [selectedOutputDeviceId]);
-  useEffect(() => { silenceSecondsRef.current = silenceSeconds; }, [silenceSeconds]);
-  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => {
+    activeSideRef.current = activeSide;
+  }, [activeSide]);
+
+  useEffect(() => {
+    currentTrackIndexRef.current = currentTrackIndex;
+  }, [currentTrackIndex]);
+
+  useEffect(() => {
+    sideARef.current = sideA;
+  }, [sideA]);
+
+  useEffect(() => {
+    sideBRef.current = sideB;
+  }, [sideB]);
+
+  useEffect(() => {
+    selectedOutputDeviceIdRef.current = selectedOutputDeviceId;
+  }, [selectedOutputDeviceId]);
+
+  useEffect(() => {
+    silenceSecondsRef.current = silenceSeconds;
+  }, [silenceSeconds]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
 
   useEffect(() => {
     loadAudioDevices();
@@ -304,18 +584,23 @@ export default function CassetteTapePlanner() {
       gainNodeRef.current.gain.value = 1;
       gainNodeRef.current.connect(audioContextRef.current.destination);
     }
+
     if (audioContextRef.current.state === "suspended") await audioContextRef.current.resume();
-    await applyOutputDevice(selectedOutputDeviceIdRef.current);
     return audioContextRef.current;
   }
 
   async function loadAudioDevices() {
     setAudioError("");
     try {
-      if (!navigator.mediaDevices?.enumerateDevices) { setAudioDevices([]); return; }
+      if (!navigator.mediaDevices?.enumerateDevices) {
+        setAudioDevices([]);
+        return;
+      }
       const devices = await navigator.mediaDevices.enumerateDevices();
       setAudioDevices(devices.filter((device) => device.kind === "audiooutput"));
-    } catch { setAudioError("오디오 출력 장치 목록을 불러올 수 없습니다."); }
+    } catch {
+      setAudioError("오디오 출력 장치 목록을 불러올 수 없습니다.");
+    }
   }
 
   async function requestAudioDevicePermission() {
@@ -324,13 +609,19 @@ export default function CassetteTapePlanner() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
       await loadAudioDevices();
-    } catch { setAudioError("장치 이름 표시를 위해 브라우저의 오디오 권한이 필요할 수 있습니다."); }
+    } catch {
+      setAudioError("장치 이름 표시를 위해 브라우저의 오디오 권한이 필요할 수 있습니다.");
+    }
   }
 
   async function selectOutputDevice() {
     setAudioError("");
     try {
-      if (!navigator.mediaDevices?.selectAudioOutput) { setAudioError("현재 브라우저는 출력 장치 직접 선택을 지원하지 않습니다. Windows에서는 Chrome 또는 Edge 최신 버전에서 테스트해주세요."); return; }
+      if (!navigator.mediaDevices?.selectAudioOutput) {
+        setAudioError("현재 브라우저는 출력 장치 직접 선택을 지원하지 않습니다. Windows에서는 Chrome 또는 Edge 최신 버전에서 테스트해주세요.");
+        return;
+      }
+
       const device = await navigator.mediaDevices.selectAudioOutput();
       if (device?.deviceId) {
         setSelectedOutputDeviceId(device.deviceId);
@@ -339,14 +630,19 @@ export default function CassetteTapePlanner() {
         await applyOutputDevice(device.deviceId);
         await loadAudioDevices();
       }
-    } catch { setAudioError("출력 장치 선택이 취소되었거나 권한이 허용되지 않았습니다."); }
+    } catch {
+      setAudioError("출력 장치 선택이 취소되었거나 권한이 허용되지 않았습니다.");
+    }
   }
 
   async function applyOutputDevice(deviceId = selectedOutputDeviceIdRef.current) {
     const audioContext = audioContextRef.current;
     if (!audioContext || !supportsAudioContextOutputSelection || !audioContext.setSinkId) return;
-    try { await audioContext.setSinkId(deviceId || "default"); }
-    catch { setAudioError("선택한 출력 장치로 변경할 수 없습니다. Chrome/Edge, HTTPS 또는 localhost 환경을 확인해주세요."); }
+    try {
+      await audioContext.setSinkId(deviceId || "default");
+    } catch {
+      setAudioError("선택한 출력 장치로 변경할 수 없습니다. Chrome/Edge, HTTPS 또는 localhost 환경을 확인해주세요.");
+    }
   }
 
   function getPlayableTracks(side) {
@@ -354,43 +650,84 @@ export default function CassetteTapePlanner() {
     return tracks.filter((track) => track.audioBuffer);
   }
 
-  function clearSilenceTimer() { if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; } setIsWaitingSilence(false); }
-  function stopCurrentSource() { if (sourceNodeRef.current) { manualStopRef.current = true; try { sourceNodeRef.current.stop(); } catch {} sourceNodeRef.current.disconnect(); sourceNodeRef.current = null; } }
+  function clearSilenceTimer() {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    setIsWaitingSilence(false);
+  }
+
+  function stopCurrentSource() {
+    if (sourceNodeRef.current) {
+      manualStopRef.current = true;
+      try {
+        sourceNodeRef.current.stop();
+      } catch {}
+      sourceNodeRef.current.disconnect();
+      sourceNodeRef.current = null;
+    }
+  }
+
   function startProgressTimer() {
     if (progressTimerRef.current) cancelAnimationFrame(progressTimerRef.current);
+
     const tick = () => {
       const audioContext = audioContextRef.current;
       if (!audioContext || !isPlayingRef.current) return;
+
       const elapsed = audioContext.currentTime - playbackStartContextTimeRef.current;
       const currentTime = Math.min(currentDurationRef.current, pausedOffsetRef.current + elapsed);
       setProgress({ currentTime, duration: currentDurationRef.current });
       progressTimerRef.current = requestAnimationFrame(tick);
     };
+
     progressTimerRef.current = requestAnimationFrame(tick);
   }
-  function stopProgressTimer() { if (progressTimerRef.current) { cancelAnimationFrame(progressTimerRef.current); progressTimerRef.current = null; } }
+
+  function stopProgressTimer() {
+    if (progressTimerRef.current) {
+      cancelAnimationFrame(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }
 
   async function playSpecificTrack(side, index, offset = 0) {
     const audioContext = await ensureAudioContext();
     const playableTracks = getPlayableTracks(side);
     const track = playableTracks[index];
     if (!track?.audioBuffer || !gainNodeRef.current) return;
+
     clearSilenceTimer();
     stopCurrentSource();
     manualStopRef.current = false;
+
     const source = audioContext.createBufferSource();
     source.buffer = track.audioBuffer;
     source.connect(gainNodeRef.current);
-    source.onended = () => { if (manualStopRef.current) { manualStopRef.current = false; return; } playNextTrackAfterEnded(); };
+    source.onended = () => {
+      if (manualStopRef.current) {
+        manualStopRef.current = false;
+        return;
+      }
+      playNextTrackAfterEnded();
+    };
+
     const safeOffset = Math.min(Math.max(0, offset), track.audioBuffer.duration);
     source.start(0, safeOffset);
+
     sourceNodeRef.current = source;
     playbackStartContextTimeRef.current = audioContext.currentTime;
     pausedOffsetRef.current = safeOffset;
     currentDurationRef.current = track.audioBuffer.duration;
-    setActiveSide(side); activeSideRef.current = side;
-    setCurrentTrackIndex(index); currentTrackIndexRef.current = index;
-    isPlayingRef.current = true; setIsPlaying(true); setIsPaused(false);
+
+    setActiveSide(side);
+    activeSideRef.current = side;
+    setCurrentTrackIndex(index);
+    currentTrackIndexRef.current = index;
+    isPlayingRef.current = true;
+    setIsPlaying(true);
+    setIsPaused(false);
     setProgress({ currentTime: safeOffset, duration: track.audioBuffer.duration });
     setNowPlayingTitle(`${side}면 - ${track.title || track.fileName || "Untitled"}`);
     setAudioError("");
@@ -401,7 +738,12 @@ export default function CassetteTapePlanner() {
     setJacketDesign(null);
     const playableTracks = getPlayableTracks(side);
     if (playableTracks.length === 0) return;
-    if (activeSide === side && isPaused && currentTrackIndex >= 0) { await playSpecificTrack(side, currentTrackIndex, pausedOffsetRef.current); return; }
+
+    if (activeSide === side && isPaused && currentTrackIndex >= 0) {
+      await playSpecificTrack(side, currentTrackIndex, pausedOffsetRef.current);
+      return;
+    }
+
     const startIndex = activeSide === side && currentTrackIndex >= 0 ? currentTrackIndex : 0;
     await playSpecificTrack(side, Math.min(startIndex, playableTracks.length - 1), 0);
   }
@@ -410,56 +752,237 @@ export default function CassetteTapePlanner() {
     stopProgressTimer();
     const side = activeSideRef.current;
     if (!side) return;
+
     const playableTracks = getPlayableTracks(side);
     const nextIndex = currentTrackIndexRef.current + 1;
+
     if (nextIndex >= playableTracks.length) {
       const design = createCassetteJacket(side, playableTracks);
       stopPlayback();
       setJacketDesign(design);
       return;
     }
+
     const waitSeconds = Math.max(0, Number(silenceSecondsRef.current) || 0);
     if (waitSeconds > 0) {
       setIsWaitingSilence(true);
-      isPlayingRef.current = false; setIsPlaying(false); setIsPaused(false);
+      isPlayingRef.current = false;
+      setIsPlaying(false);
+      setIsPaused(false);
       setNowPlayingTitle(`${side}면 - 다음 곡까지 ${waitSeconds}초 무음`);
       setProgress({ currentTime: 0, duration: 0 });
+
       clearSilenceTimer();
-      silenceTimerRef.current = setTimeout(() => { silenceTimerRef.current = null; setIsWaitingSilence(false); playSpecificTrack(side, nextIndex, 0); }, waitSeconds * 1000);
+      silenceTimerRef.current = setTimeout(() => {
+        silenceTimerRef.current = null;
+        setIsWaitingSilence(false);
+        playSpecificTrack(side, nextIndex, 0);
+      }, waitSeconds * 1000);
       return;
     }
+
     playSpecificTrack(side, nextIndex, 0);
   }
 
-  function playNextTrack(sideOverride) { const side = sideOverride || activeSideRef.current; if (!side) return; const playableTracks = getPlayableTracks(side); if (playableTracks.length === 0) return; playSpecificTrack(side, Math.min(currentTrackIndexRef.current + 1, playableTracks.length - 1), 0); }
-  function playPreviousTrack(sideOverride) { const side = sideOverride || activeSideRef.current; if (!side) return; playSpecificTrack(side, Math.max(0, currentTrackIndexRef.current - 1), 0); }
-  function pausePlayback() { if (!audioContextRef.current || !sourceNodeRef.current) return; const elapsed = audioContextRef.current.currentTime - playbackStartContextTimeRef.current; pausedOffsetRef.current = Math.min(currentDurationRef.current, pausedOffsetRef.current + elapsed); stopCurrentSource(); stopProgressTimer(); isPlayingRef.current = false; setIsPlaying(false); setIsPaused(true); setProgress({ currentTime: pausedOffsetRef.current, duration: currentDurationRef.current }); }
-  function stopPlayback() { clearSilenceTimer(); stopCurrentSource(); stopProgressTimer(); setActiveSide(null); activeSideRef.current = null; setCurrentTrackIndex(-1); currentTrackIndexRef.current = -1; isPlayingRef.current = false; setIsPlaying(false); setIsPaused(false); setIsWaitingSilence(false); setNowPlayingTitle(""); setProgress({ currentTime: 0, duration: 0 }); pausedOffsetRef.current = 0; currentDurationRef.current = 0; }
+  function playNextTrack(sideOverride) {
+    const side = sideOverride || activeSideRef.current;
+    if (!side) return;
+    const playableTracks = getPlayableTracks(side);
+    if (playableTracks.length === 0) return;
+    const nextIndex = Math.min(currentTrackIndexRef.current + 1, playableTracks.length - 1);
+    playSpecificTrack(side, nextIndex, 0);
+  }
 
-  function addManual(side) { const track = { id: crypto.randomUUID(), title: "", seconds: 0, fileName: "", type: "manual", file: null, audioBuffer: null }; if (side === "A") setSideA((prev) => [...prev, track]); else setSideB((prev) => [...prev, track]); }
-  function updateTrack(side, id, updater) { const setter = side === "A" ? setSideA : setSideB; setter((prev) => prev.map((track) => (track.id === id ? { ...track, ...updater(track) } : track))); }
-  function removeTrack(side, id) { const setter = side === "A" ? setSideA : setSideB; setter((prev) => { const playableTracks = getPlayableTracks(side); const targetPlayableIndex = playableTracks.findIndex((track) => track.id === id); if (activeSideRef.current === side && currentTrackIndexRef.current === targetPlayableIndex) stopPlayback(); return prev.filter((track) => track.id !== id); }); }
+  function playPreviousTrack(sideOverride) {
+    const side = sideOverride || activeSideRef.current;
+    if (!side) return;
+    const previousIndex = Math.max(0, currentTrackIndexRef.current - 1);
+    playSpecificTrack(side, previousIndex, 0);
+  }
+
+  function pausePlayback() {
+    if (!audioContextRef.current || !sourceNodeRef.current) return;
+    const elapsed = audioContextRef.current.currentTime - playbackStartContextTimeRef.current;
+    pausedOffsetRef.current = Math.min(currentDurationRef.current, pausedOffsetRef.current + elapsed);
+    stopCurrentSource();
+    stopProgressTimer();
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+    setIsPaused(true);
+    setProgress({ currentTime: pausedOffsetRef.current, duration: currentDurationRef.current });
+  }
+
+  function stopPlayback() {
+    clearSilenceTimer();
+    stopCurrentSource();
+    stopProgressTimer();
+    setActiveSide(null);
+    activeSideRef.current = null;
+    setCurrentTrackIndex(-1);
+    currentTrackIndexRef.current = -1;
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+    setIsPaused(false);
+    setIsWaitingSilence(false);
+    setNowPlayingTitle("");
+    setProgress({ currentTime: 0, duration: 0 });
+    pausedOffsetRef.current = 0;
+    currentDurationRef.current = 0;
+  }
+
+  function addManual(side) {
+    const track = {
+      id: crypto.randomUUID(),
+      title: "",
+      seconds: 0,
+      fileName: "",
+      type: "manual",
+      file: null,
+      audioBuffer: null,
+    };
+    if (side === "A") setSideA((prev) => [...prev, track]);
+    else setSideB((prev) => [...prev, track]);
+  }
+
+  function updateTrack(side, id, updater) {
+    const setter = side === "A" ? setSideA : setSideB;
+    setter((prev) => prev.map((track) => (track.id === id ? { ...track, ...updater(track) } : track)));
+  }
+
+  function removeTrack(side, id) {
+    const setter = side === "A" ? setSideA : setSideB;
+    setter((prev) => {
+      const playableTracks = getPlayableTracks(side);
+      const targetPlayableIndex = playableTracks.findIndex((track) => track.id === id);
+      if (activeSideRef.current === side && currentTrackIndexRef.current === targetPlayableIndex) stopPlayback();
+      return prev.filter((track) => track.id !== id);
+    });
+  }
 
   async function handleFilesForSide(side, files) {
-    setIsDecoding(true); setAudioError("");
+    setIsDecoding(true);
+    setAudioError("");
     try {
       const audioContext = await ensureAudioContext();
       const tracks = await audioFilesToTracks(files, audioContext);
-      if (tracks.length > 0) { if (side === "A") setSideA((prev) => [...prev, ...tracks]); else setSideB((prev) => [...prev, ...tracks]); }
-      if (tracks.some((track) => track.decodeError)) setAudioError("일부 파일은 현재 브라우저에서 디코딩할 수 없습니다. FLAC/ALAC는 브라우저별 지원 차이가 있습니다.");
-    } finally { setIsDecoding(false); }
+      if (tracks.length > 0) {
+        if (side === "A") setSideA((prev) => [...prev, ...tracks]);
+        else setSideB((prev) => [...prev, ...tracks]);
+      }
+      if (tracks.some((track) => track.decodeError)) {
+        setAudioError("일부 파일은 현재 브라우저에서 디코딩할 수 없습니다. FLAC/ALAC는 브라우저별 지원 차이가 있습니다.");
+      }
+    } finally {
+      setIsDecoding(false);
+    }
   }
 
-  async function handleFileInput(side, event) { await handleFilesForSide(side, event.target.files); event.target.value = ""; }
+  async function handleFileInput(side, event) {
+    await handleFilesForSide(side, event.target.files);
+    event.target.value = "";
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-neutral-100 to-white p-4 text-neutral-900">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-6 rounded-3xl bg-white p-5 shadow-sm"><div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><div className="mb-1 flex items-center gap-2 text-sm font-semibold text-neutral-500"><Music size={16} /> TAPE</div><h1 className="text-3xl font-black tracking-tight">카세트 테이프 플래너</h1></div><div className="flex items-center gap-3"><label className="text-sm font-semibold text-neutral-600">테이프 총 길이</label><input className="w-24 rounded-xl border px-3 py-2 text-right text-lg font-bold outline-none focus:ring-2 focus:ring-neutral-300" type="number" min="1" value={tapeMinutes} onChange={(event) => setTapeMinutes(Math.max(1, Number(event.target.value) || 1))} /><span className="text-sm text-neutral-500">분 → 각 면: {secondsToTime(sideSeconds)}</span></div></div></header>
-        <section className="mb-4 rounded-3xl border bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><div className="flex items-center gap-2 text-sm font-bold text-neutral-700"><Volume2 size={16} /> 오디오 출력 장치</div><div className="mt-1 text-xs text-neutral-500">Web Audio API 기반 재생입니다. DAC 선택은 Chrome/Edge의 HTTPS 또는 localhost 환경에서 주로 지원됩니다.</div></div><div className="flex flex-col gap-2 sm:flex-row sm:items-center"><select className="min-w-72 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-300 disabled:bg-neutral-100" value={selectedOutputDeviceId} onChange={async (event) => { const nextDeviceId = event.target.value; setSelectedOutputDeviceId(nextDeviceId); selectedOutputDeviceIdRef.current = nextDeviceId; await applyOutputDevice(nextDeviceId); }} disabled={!supportsAudioContextOutputSelection}><option value="default">기본 출력 장치</option>{audioDevices.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `오디오 출력 장치 ${index + 1}`}</option>)}</select><button className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700" onClick={selectOutputDevice}>출력 장치 직접 선택</button><button className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-neutral-100" onClick={requestAudioDevicePermission}>장치 목록 새로고침</button></div></div>{!supportsAudioContextOutputSelection && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">현재 브라우저는 Web Audio API의 출력 장치 직접 선택을 지원하지 않습니다. OS 사운드 설정에서 DAC를 기본 출력 장치로 선택해주세요.</p>}<div className="mt-3 rounded-2xl border bg-neutral-50 p-3"><label className="flex flex-col gap-2 text-sm font-semibold text-neutral-700 sm:flex-row sm:items-center"><span>곡 사이 무음부</span><input className="w-28 rounded-xl border bg-white px-3 py-2 text-right text-sm outline-none focus:ring-2 focus:ring-neutral-300" type="number" min="0" step="0.5" value={silenceSeconds} onChange={(event) => setSilenceSeconds(Math.max(0, Number(event.target.value) || 0))} /><span className="text-neutral-500">초</span></label><p className="mt-1 text-xs text-neutral-500">한 곡이 끝난 뒤 다음 곡을 재생하기 전에 설정한 시간만큼 기다립니다. 이 시간은 A면/B면 사용 시간에도 포함됩니다.</p></div>{nowPlayingTitle && <p className="mt-3 rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold">{isWaitingSilence ? "무음 대기 중" : "현재 재생 중"}: {nowPlayingTitle}</p>}{isDecoding && <p className="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700">음원을 Web Audio API로 디코딩하는 중입니다. 긴 무손실 파일은 시간이 걸릴 수 있습니다.</p>}{audioError && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{audioError}</p>}<p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-600">Web Audio API는 브라우저에서 가능한 고품질 재생 제어 방식이지만, Exclusive Mode / bit-perfect를 보장하지는 않습니다. FLAC/ALAC 지원은 브라우저 코덱 지원에 따라 달라집니다.</p></section>
-        <div className="mb-4 flex flex-wrap gap-2"><button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputARef.current?.click()}>A면 파일 선택</button><button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputBRef.current?.click()}>B면 파일 선택</button><input ref={fileInputARef} className="hidden" type="file" multiple accept="audio/*,.mp3,.flac,.wav,.aiff,.aif,.m4a,.alac" onChange={(event) => handleFileInput("A", event)} /><input ref={fileInputBRef} className="hidden" type="file" multiple accept="audio/*,.mp3,.flac,.wav,.aiff,.aif,.m4a,.alac" onChange={(event) => handleFileInput("B", event)} /></div>
+        <header className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-neutral-500">
+                <Music size={16} /> TAPE
+              </div>
+              <h1 className="text-3xl font-black tracking-tight">카세트 테이프 플래너</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-semibold text-neutral-600">테이프 총 길이</label>
+              <input className="w-24 rounded-xl border px-3 py-2 text-right text-lg font-bold outline-none focus:ring-2 focus:ring-neutral-300" type="number" min="1" value={tapeMinutes} onChange={(event) => setTapeMinutes(Math.max(1, Number(event.target.value) || 1))} />
+              <span className="text-sm text-neutral-500">분 → 각 면: {secondsToTime(sideSeconds)}</span>
+            </div>
+          </div>
+        </header>
+
+        <section className="mb-4 rounded-3xl border bg-white p-4 shadow-sm">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-bold text-neutral-700">
+              <Volume2 size={16} /> 재생 설정
+            </div>
+            <div className="mt-1 text-xs text-neutral-500">
+              별도의 오디오 출력 장치 설정 없이 브라우저/OS의 기본 출력 장치로 재생됩니다.
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-2xl border bg-neutral-50 p-3">
+            <label className="flex flex-col gap-2 text-sm font-semibold text-neutral-700 sm:flex-row sm:items-center">
+              <span>곡 사이 무음부</span>
+              <input className="w-28 rounded-xl border bg-white px-3 py-2 text-right text-sm outline-none focus:ring-2 focus:ring-neutral-300" type="number" min="0" step="0.5" value={silenceSeconds} onChange={(event) => setSilenceSeconds(Math.max(0, Number(event.target.value) || 0))} />
+              <span className="text-neutral-500">초</span>
+            </label>
+            <p className="mt-1 text-xs text-neutral-500">한 곡이 끝난 뒤 다음 곡을 재생하기 전에 설정한 시간만큼 기다립니다. 이 시간은 A면/B면 사용 시간에도 포함됩니다.</p>
+          </div>
+
+          {nowPlayingTitle && <p className="mt-3 rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold">{isWaitingSilence ? "무음 대기 중" : "현재 재생 중"}: {nowPlayingTitle}</p>}
+          {isDecoding && <p className="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700">음원을 Web Audio API로 디코딩하는 중입니다. 긴 무손실 파일은 시간이 걸릴 수 있습니다.</p>}
+          {audioError && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{audioError}</p>}
+          <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-600">Web Audio API 기반으로 재생하며, 출력 장치는 현재 OS/브라우저의 기본 출력 장치를 사용합니다.</p>
+        </section>
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputARef.current?.click()}>
+            A면 파일 선택
+          </button>
+          <button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputBRef.current?.click()}>
+            B면 파일 선택
+          </button>
+          <input ref={fileInputARef} className="hidden" type="file" multiple accept="audio/*,.mp3,.flac,.wav,.aiff,.aif,.m4a,.alac" onChange={(event) => handleFileInput("A", event)} />
+          <input ref={fileInputBRef} className="hidden" type="file" multiple accept="audio/*,.mp3,.flac,.wav,.aiff,.aif,.m4a,.alac" onChange={(event) => handleFileInput("B", event)} />
+        </div>
+
         <JacketPreview design={jacketDesign} onClose={() => setJacketDesign(null)} />
-        <div className="grid gap-4 lg:grid-cols-2"><TapeSide label="A" tracks={sideA} maxSeconds={sideSeconds} activeSide={activeSide} currentTrackId={currentTrack?.id} isPlaying={isPlaying} isPaused={isPaused} progress={progress} silenceSeconds={silenceSeconds} onDropTracks={(files) => handleFilesForSide("A", files)} onAddManual={() => addManual("A")} onPlaySide={playSide} onPrevious={playPreviousTrack} onNext={playNextTrack} onPause={pausePlayback} onStop={stopPlayback} onChangeTitle={(id, title) => updateTrack("A", id, () => ({ title }))} onChangeSeconds={(id, seconds) => updateTrack("A", id, () => ({ seconds }))} onRemove={(id) => removeTrack("A", id)} /><TapeSide label="B" tracks={sideB} maxSeconds={sideSeconds} activeSide={activeSide} currentTrackId={currentTrack?.id} isPlaying={isPlaying} isPaused={isPaused} progress={progress} silenceSeconds={silenceSeconds} onDropTracks={(files) => handleFilesForSide("B", files)} onAddManual={() => addManual("B")} onPlaySide={playSide} onPrevious={playPreviousTrack} onNext={playNextTrack} onPause={pausePlayback} onStop={stopPlayback} onChangeTitle={(id, title) => updateTrack("B", id, () => ({ title }))} onChangeSeconds={(id, seconds) => updateTrack("B", id, () => ({ seconds }))} onRemove={(id) => removeTrack("B", id)} /></div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <TapeSide
+            label="A"
+            tracks={sideA}
+            maxSeconds={sideSeconds}
+            activeSide={activeSide}
+            currentTrackId={currentTrack?.id}
+            isPlaying={isPlaying}
+            isPaused={isPaused}
+            progress={progress}
+            silenceSeconds={silenceSeconds}
+            onDropTracks={(files) => handleFilesForSide("A", files)}
+            onAddManual={() => addManual("A")}
+            onPlaySide={playSide}
+            onPrevious={playPreviousTrack}
+            onNext={playNextTrack}
+            onPause={pausePlayback}
+            onStop={stopPlayback}
+            onChangeTitle={(id, title) => updateTrack("A", id, () => ({ title }))}
+            onChangeSeconds={(id, seconds) => updateTrack("A", id, () => ({ seconds }))}
+            onRemove={(id) => removeTrack("A", id)}
+          />
+          <TapeSide
+            label="B"
+            tracks={sideB}
+            maxSeconds={sideSeconds}
+            activeSide={activeSide}
+            currentTrackId={currentTrack?.id}
+            isPlaying={isPlaying}
+            isPaused={isPaused}
+            progress={progress}
+            silenceSeconds={silenceSeconds}
+            onDropTracks={(files) => handleFilesForSide("B", files)}
+            onAddManual={() => addManual("B")}
+            onPlaySide={playSide}
+            onPrevious={playPreviousTrack}
+            onNext={playNextTrack}
+            onPause={pausePlayback}
+            onStop={stopPlayback}
+            onChangeTitle={(id, title) => updateTrack("B", id, () => ({ title }))}
+            onChangeSeconds={(id, seconds) => updateTrack("B", id, () => ({ seconds }))}
+            onRemove={(id) => removeTrack("B", id)}
+          />
+        </div>
       </div>
     </main>
   );
