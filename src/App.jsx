@@ -1,18 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Image as ImageIcon,
-  Music,
-  Pause,
-  Play,
-  Plus,
-  SkipBack,
-  SkipForward,
-  Sparkles,
-  Square,
-  Upload,
-  Volume2,
-  X,
-} from "lucide-react";
+import { Plus, Upload, Music, X, Play, Pause, Square, Volume2, SkipBack, SkipForward } from "lucide-react";
 
 const DEFAULT_TAPE_MINUTES = 90;
 const SUPPORTED_AUDIO_EXTENSIONS = [".mp3", ".flac", ".wav", ".aiff", ".aif", ".m4a", ".alac"];
@@ -35,7 +22,31 @@ function isSupportedAudioFile(file) {
 
 async function decodeAudioFile(audioContext, file) {
   const arrayBuffer = await file.arrayBuffer();
-  return audioContext.decodeAudioData(arrayBuffer.slice(0));
+  return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+}
+
+function calculateNormalizeGain(audioBuffer) {
+  let sumSquares = 0;
+  let peak = 0;
+  let sampleCount = 0;
+
+  for (let channel = 0; channel < audioBuffer.numberOfChannels; channel += 1) {
+    const data = audioBuffer.getChannelData(channel);
+    for (let i = 0; i < data.length; i += 1) {
+      const sample = data[i];
+      const abs = Math.abs(sample);
+      sumSquares += sample * sample;
+      if (abs > peak) peak = abs;
+      sampleCount += 1;
+    }
+  }
+
+  const rms = Math.sqrt(sumSquares / Math.max(1, sampleCount));
+  const targetRms = 0.12;
+  const maxBoost = 3.0;
+  const peakLimit = peak > 0 ? 0.95 / peak : 1;
+  const rmsGain = rms > 0 ? targetRms / rms : 1;
+  return Math.min(rmsGain, peakLimit, maxBoost);
 }
 
 async function audioFilesToTracks(files, audioContext) {
@@ -45,6 +56,7 @@ async function audioFilesToTracks(files, audioContext) {
   for (const file of audioFiles) {
     try {
       const audioBuffer = await decodeAudioFile(audioContext, file);
+      const normalizeGain = calculateNormalizeGain(audioBuffer);
       tracks.push({
         id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
         title: fileNameToTitle(file.name),
@@ -53,8 +65,9 @@ async function audioFilesToTracks(files, audioContext) {
         type: file.type || "audio file",
         file,
         audioBuffer,
+        normalizeGain,
       });
-    } catch {
+    } catch (error) {
       tracks.push({
         id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
         title: fileNameToTitle(file.name),
@@ -63,90 +76,13 @@ async function audioFilesToTracks(files, audioContext) {
         type: file.type || "audio file",
         file,
         audioBuffer: null,
+        normalizeGain: 1,
         decodeError: true,
       });
     }
   }
 
   return tracks;
-}
-
-function createCassetteJacket(side, tracks) {
-  const text = tracks.map((track) => `${track.title || ""} ${track.fileName || ""}`).join(" ").toLowerCase();
-
-  const moodRules = [
-    {
-      mood: "Dreamy Night Drive",
-      genre: "Synth / Indie Pop",
-      words: ["night", "moon", "dream", "drive", "city", "neon", "window", "blue"],
-      gradient: "from-indigo-900 via-violet-700 to-pink-500",
-      symbol: "◐",
-    },
-    {
-      mood: "Warm Soulful Afternoon",
-      genre: "Soul / R&B",
-      words: ["love", "heart", "soul", "sweet", "baby", "sun", "warm", "gold"],
-      gradient: "from-amber-700 via-orange-400 to-yellow-200",
-      symbol: "●",
-    },
-    {
-      mood: "Quiet Acoustic Room",
-      genre: "Folk / Acoustic",
-      words: ["home", "room", "rain", "coffee", "acoustic", "folk", "alone", "letter"],
-      gradient: "from-stone-700 via-amber-200 to-stone-100",
-      symbol: "△",
-    },
-    {
-      mood: "Fresh Summer Breeze",
-      genre: "Pop / City Pop",
-      words: ["summer", "beach", "sea", "wave", "breeze", "sunset", "good day", "holiday"],
-      gradient: "from-cyan-500 via-sky-200 to-lime-100",
-      symbol: "≈",
-    },
-    {
-      mood: "Lo-Fi Midnight Tape",
-      genre: "Lo-Fi / Chill",
-      words: ["lofi", "lo-fi", "chill", "midnight", "sleep", "slow", "lazy", "jazz"],
-      gradient: "from-neutral-900 via-zinc-600 to-emerald-200",
-      symbol: "▣",
-    },
-  ];
-
-  const scored = moodRules
-    .map((rule) => ({
-      ...rule,
-      score: rule.words.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0),
-    }))
-    .sort((a, b) => b.score - a.score);
-
-  const selected =
-    scored[0].score > 0
-      ? scored[0]
-      : {
-          mood: "Essential Mixed Feelings",
-          genre: "Mixtape / Various",
-          gradient: "from-neutral-900 via-neutral-500 to-neutral-100",
-          symbol: "◆",
-        };
-
-  const totalSeconds = tracks.reduce((sum, track) => sum + (track.seconds || 0), 0);
-
-  return {
-    side,
-    title: `SIDE ${side} — ${selected.mood}`,
-    genre: selected.genre,
-    mood: selected.mood,
-    gradient: selected.gradient,
-    symbol: selected.symbol,
-    totalTime: secondsToTime(totalSeconds),
-    trackCount: tracks.length,
-    tracks: tracks.map((track) => track.title || track.fileName || "Untitled"),
-  };
-}
-
-function buildAIJacketPrompt(design) {
-  const tracks = design.tracks.map((track, index) => `${index + 1}. ${track}`).join("\n");
-  return `Design a square cassette tape album cover for a mixtape.\nSide: ${design.side}\nMood: ${design.mood}\nGenre: ${design.genre}\nTotal time: ${design.totalTime}\nTrack list:\n${tracks}\nVisual direction: premium vintage cassette jacket, tasteful typography, analog texture, no real artist portraits, no copyrighted logos, coherent with the mood and genre.`;
 }
 
 function TrackRow({ track, index, isCurrent, onChangeTitle, onChangeSeconds, onRemove }) {
@@ -206,9 +142,11 @@ function PlaylistControls({ label, disabled, isPlaying, isPaused, progress, onPl
           {secondsToTime(progress.currentTime)} / {secondsToTime(progress.duration)}
         </div>
       </div>
+
       <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
         <div className="h-full rounded-full bg-neutral-900 transition-all" style={{ width: `${progressPercent}%` }} />
       </div>
+
       <div className="grid grid-cols-5 gap-2">
         <button className="flex items-center justify-center gap-1 rounded-xl bg-neutral-900 px-3 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-300" onClick={onPlay} disabled={disabled}>
           <Play size={15} /> 재생
@@ -230,182 +168,7 @@ function PlaylistControls({ label, disabled, isPlaying, isPaused, progress, onPl
   );
 }
 
-function AIJacketImage({ design }) {
-  const [imageUrl, setImageUrl] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [error, setError] = useState("");
-  const prompt = design ? buildAIJacketPrompt(design) : "";
-
-  async function generateAIImage() {
-    if (!design) return;
-
-    const endpoint = import.meta.env.VITE_AI_JACKET_API_URL;
-    setImageUrl("");
-    setError("");
-
-    if (!endpoint) {
-      setStatus("missing-endpoint");
-      return;
-    }
-
-    setStatus("generating");
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          side: design.side,
-          mood: design.mood,
-          genre: design.genre,
-          tracks: design.tracks,
-        }),
-      });
-
-      if (!response.ok) throw new Error("AI image generation failed");
-      const data = await response.json();
-      const nextImageUrl = data.imageUrl || data.url || data.base64Image || data.image;
-      if (!nextImageUrl) throw new Error("No image URL returned from API");
-      setImageUrl(nextImageUrl.startsWith("data:") || nextImageUrl.startsWith("http") ? nextImageUrl : `data:image/png;base64,${nextImageUrl}`);
-      setStatus("done");
-    } catch {
-      setError("AI 이미지 생성에 실패했습니다. API endpoint 응답 형식을 확인해주세요.");
-      setStatus("error");
-    }
-  }
-
-  useEffect(() => {
-    if (design) generateAIImage();
-  }, [design]);
-
-  if (!design) return null;
-
-  return (
-    <div className="mt-5 rounded-3xl border bg-neutral-50 p-4">
-      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-black text-neutral-800">
-            <Sparkles size={16} /> AI 이미지 생성 자켓
-          </div>
-          <p className="mt-1 text-sm text-neutral-500">곡 제목, 장르, 분위기 정보를 프롬프트로 만들어 이미지 생성 API에 전달합니다.</p>
-        </div>
-        <button className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:bg-neutral-300" onClick={generateAIImage} disabled={status === "generating"}>
-          {status === "generating" ? "생성 중..." : "AI 이미지 다시 생성"}
-        </button>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-3xl border bg-white">
-          {imageUrl ? (
-            <img src={imageUrl} alt="AI generated cassette jacket" className="h-full w-full object-cover" />
-          ) : (
-            <div className="p-6 text-center text-neutral-500">
-              <ImageIcon className="mx-auto mb-3" size={42} />
-              {status === "generating" && <div className="font-semibold">AI 이미지를 생성하는 중입니다...</div>}
-              {status === "missing-endpoint" && <div className="font-semibold">AI 이미지 생성 API endpoint가 설정되지 않았습니다.</div>}
-              {status === "error" && <div className="font-semibold text-red-600">{error}</div>}
-              {status === "idle" && <div className="font-semibold">AI 이미지 생성 대기 중</div>}
-            </div>
-          )}
-        </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <div className="mb-2 text-sm font-bold text-neutral-500">AI 이미지 생성 프롬프트</div>
-          <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-2xl bg-neutral-900 p-4 text-xs leading-relaxed text-neutral-100">{prompt}</pre>
-          <p className="mt-3 text-xs text-neutral-500">
-            브라우저에 API Key를 직접 넣으면 보안상 위험합니다. Netlify Function, Vercel API Route, 또는 별도 백엔드에 이미지 생성 API를 연결하고, 그 주소를 <code>VITE_AI_JACKET_API_URL</code> 환경변수로 설정해주세요.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function JacketPreview({ design, onClose }) {
-  if (!design) return null;
-
-  return (
-    <section className="mb-4 rounded-3xl border bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-black">AI 스타일 카세트 자켓 제안</h2>
-          <p className="text-sm text-neutral-500">재생이 끝난 면의 곡 제목과 파일명을 기준으로 분위기를 추정해 만든 자켓입니다.</p>
-        </div>
-        <button className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-neutral-100" onClick={onClose}>
-          닫기
-        </button>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        <div className={`aspect-square overflow-hidden rounded-3xl bg-gradient-to-br ${design.gradient} p-5 text-white shadow-inner`}>
-          <div className="flex h-full flex-col justify-between rounded-2xl border border-white/40 bg-white/10 p-5 backdrop-blur-sm">
-            <div>
-              <div className="mb-4 flex items-center justify-between text-xs font-bold tracking-[0.35em] text-white/80">
-                <span>CASSETTE</span>
-                <span>SIDE {design.side}</span>
-              </div>
-              <div className="text-7xl font-black leading-none opacity-90">{design.symbol}</div>
-            </div>
-            <div>
-              <div className="mb-3 h-20 rounded-xl border border-white/50 bg-white/80 p-3 text-neutral-900">
-                <div className="text-xs font-bold tracking-widest text-neutral-500">MIX TAPE</div>
-                <div className="line-clamp-2 text-xl font-black leading-tight">{design.mood}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                <div className="rounded-lg bg-black/20 p-2">{design.genre}</div>
-                <div className="rounded-lg bg-black/20 p-2 text-right">
-                  {design.trackCount} tracks · {design.totalTime}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-3xl bg-neutral-50 p-4">
-          <div className="mb-2 text-sm font-bold text-neutral-500">분석 결과</div>
-          <div className="mb-3 text-2xl font-black">{design.title}</div>
-          <div className="mb-4 grid gap-2 sm:grid-cols-2">
-            <div className="rounded-2xl bg-white p-3 shadow-sm">
-              <div className="text-xs font-bold text-neutral-400">GENRE</div>
-              <div className="font-bold">{design.genre}</div>
-            </div>
-            <div className="rounded-2xl bg-white p-3 shadow-sm">
-              <div className="text-xs font-bold text-neutral-400">MOOD</div>
-              <div className="font-bold">{design.mood}</div>
-            </div>
-          </div>
-          <div className="text-sm font-bold text-neutral-500">Track list</div>
-          <ol className="mt-2 space-y-1 text-sm text-neutral-700">
-            {design.tracks.map((track, index) => (
-              <li key={`${track}-${index}`} className="rounded-xl bg-white px-3 py-2 shadow-sm">
-                {index + 1}. {track}
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-      <AIJacketImage design={design} />
-    </section>
-  );
-}
-
-function TapeSide({
-  label,
-  tracks,
-  maxSeconds,
-  activeSide,
-  currentTrackId,
-  isPlaying,
-  isPaused,
-  progress,
-  silenceSeconds,
-  onDropTracks,
-  onAddManual,
-  onPlaySide,
-  onPrevious,
-  onNext,
-  onPause,
-  onStop,
-  onChangeTitle,
-  onChangeSeconds,
-  onRemove,
-}) {
+function TapeSide({ label, tracks, maxSeconds, activeSide, currentTrackId, isPlaying, isPaused, progress, silenceSeconds, onDropTracks, onAddManual, onPlaySide, onPrevious, onNext, onPause, onStop, onChangeTitle, onChangeSeconds, onRemove }) {
   const [dragOver, setDragOver] = useState(false);
   const musicSeconds = tracks.reduce((sum, track) => sum + track.seconds, 0);
   const silenceGapCount = Math.max(0, tracks.length - 1);
@@ -420,7 +183,8 @@ function TapeSide({
   async function handleDrop(event) {
     event.preventDefault();
     setDragOver(false);
-    await onDropTracks(event.dataTransfer.files);
+    const droppedTracks = await onDropTracks(event.dataTransfer.files);
+    return droppedTracks;
   }
 
   return (
@@ -443,7 +207,9 @@ function TapeSide({
           <div className={`text-sm ${isOver ? "font-semibold text-red-600" : "text-neutral-500"}`}>
             사용 남은 시간: {isOver ? `-${secondsToTime(Math.abs(remainingSeconds))}` : secondsToTime(remainingSeconds)}
           </div>
-          {silenceTotalSeconds > 0 && <div className="text-xs text-neutral-400">무음부 포함: +{secondsToTime(silenceTotalSeconds)} ({silenceGapCount}구간)</div>}
+          {silenceTotalSeconds > 0 && (
+            <div className="text-xs text-neutral-400">무음부 포함: +{secondsToTime(silenceTotalSeconds)} ({silenceGapCount}구간)</div>
+          )}
         </div>
       </div>
 
@@ -509,9 +275,9 @@ export default function CassetteTapePlanner() {
   const [progress, setProgress] = useState({ currentTime: 0, duration: 0 });
   const [audioError, setAudioError] = useState("");
   const [silenceSeconds, setSilenceSeconds] = useState(0);
+  const [normalizeVolume, setNormalizeVolume] = useState(true);
   const [isWaitingSilence, setIsWaitingSilence] = useState(false);
   const [isDecoding, setIsDecoding] = useState(false);
-  const [jacketDesign, setJacketDesign] = useState(null);
 
   const audioContextRef = useRef(null);
   const gainNodeRef = useRef(null);
@@ -530,10 +296,11 @@ export default function CassetteTapePlanner() {
   const pausedOffsetRef = useRef(0);
   const currentDurationRef = useRef(0);
   const manualStopRef = useRef(false);
-  const isPlayingRef = useRef(false);
+  const currentSourceIdRef = useRef(0);
 
-  const sideSeconds = useMemo(() => Math.round(((Number(tapeMinutes) || 0) * 60) / 2), [tapeMinutes]);
+  const sideSeconds = useMemo(() => Math.round((Number(tapeMinutes) || 0) * 60 / 2), [tapeMinutes]);
   const supportsAudioContextOutputSelection = typeof AudioContext !== "undefined" && "setSinkId" in AudioContext.prototype;
+
   const currentTracks = activeSide === "A" ? sideA : activeSide === "B" ? sideB : [];
   const currentPlayableTracks = currentTracks.filter((track) => track.audioBuffer);
   const currentTrack = currentTrackIndex >= 0 ? currentPlayableTracks[currentTrackIndex] : null;
@@ -563,10 +330,6 @@ export default function CassetteTapePlanner() {
   }, [silenceSeconds]);
 
   useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
-
-  useEffect(() => {
     loadAudioDevices();
     navigator.mediaDevices?.addEventListener?.("devicechange", loadAudioDevices);
     return () => {
@@ -585,7 +348,11 @@ export default function CassetteTapePlanner() {
       gainNodeRef.current.connect(audioContextRef.current.destination);
     }
 
-    if (audioContextRef.current.state === "suspended") await audioContextRef.current.resume();
+    if (audioContextRef.current.state === "suspended") {
+      await audioContextRef.current.resume();
+    }
+
+    await applyOutputDevice(selectedOutputDeviceIdRef.current);
     return audioContextRef.current;
   }
 
@@ -614,27 +381,6 @@ export default function CassetteTapePlanner() {
     }
   }
 
-  async function selectOutputDevice() {
-    setAudioError("");
-    try {
-      if (!navigator.mediaDevices?.selectAudioOutput) {
-        setAudioError("현재 브라우저는 출력 장치 직접 선택을 지원하지 않습니다. Windows에서는 Chrome 또는 Edge 최신 버전에서 테스트해주세요.");
-        return;
-      }
-
-      const device = await navigator.mediaDevices.selectAudioOutput();
-      if (device?.deviceId) {
-        setSelectedOutputDeviceId(device.deviceId);
-        selectedOutputDeviceIdRef.current = device.deviceId;
-        await ensureAudioContext();
-        await applyOutputDevice(device.deviceId);
-        await loadAudioDevices();
-      }
-    } catch {
-      setAudioError("출력 장치 선택이 취소되었거나 권한이 허용되지 않았습니다.");
-    }
-  }
-
   async function applyOutputDevice(deviceId = selectedOutputDeviceIdRef.current) {
     const audioContext = audioContextRef.current;
     if (!audioContext || !supportsAudioContextOutputSelection || !audioContext.setSinkId) return;
@@ -660,11 +406,14 @@ export default function CassetteTapePlanner() {
 
   function stopCurrentSource() {
     if (sourceNodeRef.current) {
-      manualStopRef.current = true;
+      currentSourceIdRef.current += 1;
+      sourceNodeRef.current.onended = null;
       try {
         sourceNodeRef.current.stop();
       } catch {}
-      sourceNodeRef.current.disconnect();
+      try {
+        sourceNodeRef.current.disconnect();
+      } catch {}
       sourceNodeRef.current = null;
     }
   }
@@ -685,6 +434,11 @@ export default function CassetteTapePlanner() {
     progressTimerRef.current = requestAnimationFrame(tick);
   }
 
+  const isPlayingRef = useRef(false);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
   function stopProgressTimer() {
     if (progressTimerRef.current) {
       cancelAnimationFrame(progressTimerRef.current);
@@ -702,14 +456,20 @@ export default function CassetteTapePlanner() {
     stopCurrentSource();
     manualStopRef.current = false;
 
+    const sourceId = currentSourceIdRef.current + 1;
+    currentSourceIdRef.current = sourceId;
+
     const source = audioContext.createBufferSource();
     source.buffer = track.audioBuffer;
-    source.connect(gainNodeRef.current);
+
+    const trackGainNode = audioContext.createGain();
+    trackGainNode.gain.value = normalizeVolume ? track.normalizeGain || 1 : 1;
+
+    source.connect(trackGainNode);
+    trackGainNode.connect(gainNodeRef.current);
     source.onended = () => {
-      if (manualStopRef.current) {
-        manualStopRef.current = false;
-        return;
-      }
+      if (currentSourceIdRef.current !== sourceId) return;
+      sourceNodeRef.current = null;
       playNextTrackAfterEnded();
     };
 
@@ -735,7 +495,6 @@ export default function CassetteTapePlanner() {
   }
 
   async function playSide(side) {
-    setJacketDesign(null);
     const playableTracks = getPlayableTracks(side);
     if (playableTracks.length === 0) return;
 
@@ -757,9 +516,7 @@ export default function CassetteTapePlanner() {
     const nextIndex = currentTrackIndexRef.current + 1;
 
     if (nextIndex >= playableTracks.length) {
-      const design = createCassetteJacket(side, playableTracks);
       stopPlayback();
-      setJacketDesign(design);
       return;
     }
 
@@ -788,7 +545,6 @@ export default function CassetteTapePlanner() {
     const side = sideOverride || activeSideRef.current;
     if (!side) return;
     const playableTracks = getPlayableTracks(side);
-    if (playableTracks.length === 0) return;
     const nextIndex = Math.min(currentTrackIndexRef.current + 1, playableTracks.length - 1);
     playSpecificTrack(side, nextIndex, 0);
   }
@@ -839,6 +595,7 @@ export default function CassetteTapePlanner() {
       type: "manual",
       file: null,
       audioBuffer: null,
+      normalizeGain: 1,
     };
     if (side === "A") setSideA((prev) => [...prev, track]);
     else setSideB((prev) => [...prev, track]);
@@ -888,10 +645,8 @@ export default function CassetteTapePlanner() {
         <header className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-neutral-500">
-                <Music size={16} /> TAPE
-              </div>
-              <h1 className="text-3xl font-black tracking-tight">카세트 테이프 플래너</h1>
+              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-neutral-500"><Music size={16} /> TAPE</div>
+              <h1 className="text-3xl font-black tracking-tight">워크맨팩토리 카세트 테이프 녹음기</h1>
             </div>
             <div className="flex items-center gap-3">
               <label className="text-sm font-semibold text-neutral-600">테이프 총 길이</label>
@@ -902,14 +657,35 @@ export default function CassetteTapePlanner() {
         </header>
 
         <section className="mb-4 rounded-3xl border bg-white p-4 shadow-sm">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-bold text-neutral-700">
-              <Volume2 size={16} /> 재생 설정
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-bold text-neutral-700"><Volume2 size={16} /> 오디오 출력 장치</div>
+              <div className="mt-1 text-xs text-neutral-500">Web Audio API 기반 재생입니다. DAC 선택은 Chrome/Edge의 HTTPS 또는 localhost 환경에서 주로 지원됩니다.</div>
             </div>
-            <div className="mt-1 text-xs text-neutral-500">
-              별도의 오디오 출력 장치 설정 없이 브라우저/OS의 기본 출력 장치로 재생됩니다.
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                className="min-w-72 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-300 disabled:bg-neutral-100"
+                value={selectedOutputDeviceId}
+                onChange={async (event) => {
+                  const nextDeviceId = event.target.value;
+                  setSelectedOutputDeviceId(nextDeviceId);
+                  selectedOutputDeviceIdRef.current = nextDeviceId;
+                  await applyOutputDevice(nextDeviceId);
+                }}
+                disabled={!supportsAudioContextOutputSelection}
+              >
+                <option value="default">기본 출력 장치</option>
+                {audioDevices.map((device, index) => (
+                  <option key={device.deviceId} value={device.deviceId}>{device.label || `오디오 출력 장치 ${index + 1}`}</option>
+                ))}
+              </select>
+              <button className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-neutral-100" onClick={requestAudioDevicePermission}>장치 목록 새로고침</button>
             </div>
           </div>
+
+          {!supportsAudioContextOutputSelection && (
+            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">현재 브라우저는 Web Audio API의 출력 장치 직접 선택을 지원하지 않습니다. OS 사운드 설정에서 DAC를 기본 출력 장치로 선택해주세요.</p>
+          )}
 
           <div className="mt-3 rounded-2xl border bg-neutral-50 p-3">
             <label className="flex flex-col gap-2 text-sm font-semibold text-neutral-700 sm:flex-row sm:items-center">
@@ -920,24 +696,33 @@ export default function CassetteTapePlanner() {
             <p className="mt-1 text-xs text-neutral-500">한 곡이 끝난 뒤 다음 곡을 재생하기 전에 설정한 시간만큼 기다립니다. 이 시간은 A면/B면 사용 시간에도 포함됩니다.</p>
           </div>
 
+          <div className="mt-3 rounded-2xl border bg-neutral-50 p-3">
+            <label className="flex items-center gap-3 text-sm font-semibold text-neutral-700">
+              <input
+                type="checkbox"
+                checked={normalizeVolume}
+                onChange={(event) => setNormalizeVolume(event.target.checked)}
+                className="h-4 w-4 accent-neutral-900"
+              />
+              <span>곡별 음량 자동 보정</span>
+            </label>
+            <p className="mt-1 text-xs text-neutral-500">
+              각 음원의 평균 음량과 피크를 분석해서 곡 사이의 볼륨 차이를 줄입니다. 원본 파일은 변경되지 않습니다.
+            </p>
+          </div>
+
           {nowPlayingTitle && <p className="mt-3 rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold">{isWaitingSilence ? "무음 대기 중" : "현재 재생 중"}: {nowPlayingTitle}</p>}
           {isDecoding && <p className="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700">음원을 Web Audio API로 디코딩하는 중입니다. 긴 무손실 파일은 시간이 걸릴 수 있습니다.</p>}
           {audioError && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{audioError}</p>}
-          <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-600">Web Audio API 기반으로 재생하며, 출력 장치는 현재 OS/브라우저의 기본 출력 장치를 사용합니다.</p>
+          <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2 text-xs text-neutral-600">Web Audio API는 브라우저에서 가능한 고품질 재생 제어 방식이지만, Exclusive Mode / bit-perfect를 보장하지는 않습니다. FLAC/ALAC 지원은 브라우저 코덱 지원에 따라 달라집니다.</p>
         </section>
 
         <div className="mb-4 flex flex-wrap gap-2">
-          <button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputARef.current?.click()}>
-            A면 파일 선택
-          </button>
-          <button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputBRef.current?.click()}>
-            B면 파일 선택
-          </button>
+          <button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputARef.current?.click()}>A면 파일 선택</button>
+          <button className="rounded-xl border bg-white px-4 py-2 text-sm font-semibold shadow-sm" onClick={() => fileInputBRef.current?.click()}>B면 파일 선택</button>
           <input ref={fileInputARef} className="hidden" type="file" multiple accept="audio/*,.mp3,.flac,.wav,.aiff,.aif,.m4a,.alac" onChange={(event) => handleFileInput("A", event)} />
           <input ref={fileInputBRef} className="hidden" type="file" multiple accept="audio/*,.mp3,.flac,.wav,.aiff,.aif,.m4a,.alac" onChange={(event) => handleFileInput("B", event)} />
         </div>
-
-        <JacketPreview design={jacketDesign} onClose={() => setJacketDesign(null)} />
 
         <div className="grid gap-4 lg:grid-cols-2">
           <TapeSide
