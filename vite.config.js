@@ -4,5 +4,5 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: "/cassette-tape-planner/",
+  base: "/cassette-tape-planner-v2/",
 });
